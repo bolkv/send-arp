@@ -14,8 +14,8 @@ extern "C" {
 #include <map>
 #include <string>
 void usage() {
-    printf("syntax: arp_spoofing <interface>\n");
-    printf("sample: arp_spoofing wlan0\n");
+    printf("syntax: arp_spoofing <interface> <sender ip> <target ip>\n");
+    printf("sample: arp_spoofing wlan0 192.168.10.2 192.168.1\n");
 }
 
 typedef struct {
@@ -27,7 +27,7 @@ Param param = {
 };
 
 bool parse(Param* param, int argc, char* argv[]) {
-    if (argc % 2 != 1) {
+    if (argc % 2 == 1) {
         usage();
         return false;
     }
@@ -42,7 +42,7 @@ void get_my_ip_address(char* ip) {
         exit(EXIT_FAILURE);
     }
 
-    const char* iface = "wlan0";
+    const char* iface = param.dev_;
     struct ifreq ifr;
     strncpy(ifr.ifr_name, iface, strlen(iface));
     ifr.ifr_name[strlen(iface)] = '\0'; // Ensure null termination
@@ -67,7 +67,7 @@ void get_my_mac_address(uint8_t* mac) {
         exit(EXIT_FAILURE);
     }
     struct ifreq ifr;
-    const char* iface = "wlan0";
+    const char* iface = param.dev_;
 
     strncpy(ifr.ifr_name, iface, strlen(iface));
     if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) == -1) {
@@ -142,7 +142,7 @@ bool ismypacket(struct arp_header* arp_hdr, char* src_ip, char* dst_ip) {
 int main(int argc, char* argv[]) {
     if (!parse(&param, argc, argv))
         return -1;
-    param.dev_ = "wlan0";
+    param.dev_ = argv[1];
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* pcap = pcap_open_live(param.dev_, BUFSIZ, 1, 1000, errbuf);
     if (pcap == NULL) {
@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
     get_my_ip_address(my_ip);
     uint8_t my_mac[6];
     get_my_mac_address(my_mac);
-    int cur = 1;
+    int cur = 2;
     std::map< std::string ,uint8_t*> m;
 
     while (cur < argc) {
